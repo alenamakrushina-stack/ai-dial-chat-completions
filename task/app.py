@@ -1,31 +1,85 @@
 import asyncio
+import os
+import task
+from dotenv import load_dotenv
+load_dotenv()
 
 from task.clients.client import DialClient
 from task.constants import DEFAULT_SYSTEM_PROMPT
 from task.models.conversation import Conversation
 from task.models.message import Message
 from task.models.role import Role
+from dotenv import load_dotenv
 
 
 async def start(stream: bool) -> None:
-    #TODO:
-    # 1.1. Create DialClient
-    # (you can get available deployment_name via https://ai-proxy.lab.epam.com/openai/models
-    #  you can import Postman collection to make a request, file in the project root `dial-basics.postman_collection.json`
-    #  don't forget to add your API_KEY)
-    # 1.2. Create CustomDialClient
+
+    DIAL_API_KEY = os.getenv('DIAL_API_KEY')
+    print("DIAL_API_KEY from env:", os.getenv('DIAL_API_KEY'))
+
+    # 1.1. Get deployment name, for demo use 'gpt-4o'
+    deployment_name = 'gpt-4o'
+    client = DialClient(deployment_name=deployment_name)
+
     # 2. Create Conversation object
-    # 3. Get System prompt from console or use default -> constants.DEFAULT_SYSTEM_PROMPT and add to conversation
-    #    messages.
-    # 4. Use infinite cycle (while True) and get yser message from console
-    # 5. If user message is `exit` then stop the loop
-    # 6. Add user message to conversation history (role 'user')
-    # 7. If `stream` param is true -> call DialClient#stream_completion()
-    #    else -> call DialClient#get_completion()
-    # 8. Add generated message to history
-    # 9. Test it with DialClient and CustomDialClient
-    # 10. In CustomDialClient add print of whole request and response to see what you send and what you get in response
-    raise NotImplementedError
+    conversation = Conversation()
+
+    # 3. Get System prompt
+    system_prompt = input("Provide System prompt or press 'enter' to continue.\n> ").strip()
+    if not system_prompt:
+        system_prompt = DEFAULT_SYSTEM_PROMPT
+    conversation.add_message(Message(role=Role.SYSTEM, content=system_prompt))
+
+    print("\nType your question or 'exit' to quit.")
+    while True:
+        user_input = input("> ").strip()
+        if user_input.lower() == 'exit':
+            print("Exiting the chat. Goodbye!")
+            break
+        # 6. Add user message
+        conversation.add_message(Message(role=Role.USER, content=user_input))
+        messages = conversation.get_messages()
+
+        if stream:
+            ai_message = await client.stream_completion(messages)
+        else:
+            ai_message = client.get_completion(messages)
+        # 8. Add generated message to history, print
+        print(f"AI: {ai_message.content}")
+        conversation.add_message(ai_message)
+
+    # 1.1. Get deployment name, for demo use 'gpt-4o'
+    deployment_name = 'gpt-4o'
+    client = DialClient(deployment_name=deployment_name)
+
+    # 2. Create Conversation object
+    conversation = Conversation()
+
+    # 3. Get System prompt
+    system_prompt = input("Provide System prompt or press 'enter' to continue.\n> ").strip()
+    if not system_prompt:
+        system_prompt = DEFAULT_SYSTEM_PROMPT
+    conversation.add_message(Message(role=Role.SYSTEM, content=system_prompt))
+
+    print("\nType your question or 'exit' to quit.")
+    while True:
+        user_input = input("> ").strip()
+        if user_input.lower() == 'exit':
+            print("Exiting the chat. Goodbye!")
+            break
+        # 6. Add user message
+        conversation.add_message(Message(role=Role.USER, content=user_input))
+        messages = conversation.get_messages()
+
+        if stream:
+            ai_message = await client.stream_completion(messages)
+        else:
+            ai_message = client.get_completion(messages)
+        # 8. Add generated message to history, print
+        print(f"AI: {ai_message.content}")
+        conversation.add_message(ai_message)
+
+
 
 
 asyncio.run(
